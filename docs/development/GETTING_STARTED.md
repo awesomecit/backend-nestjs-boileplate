@@ -364,7 +364,7 @@ git commit -m "feat: add Prometheus monitoring with TDD"
 
 ## 📊 Metriche di Successo
 
-### Onboarding Riuscito Se:
+### Onboarding Riuscito Se
 
 - [ ] Tutti i prerequisiti installati e funzionanti
 - [ ] Test `test-cluster-init.bats` passa (5/5)
@@ -373,7 +373,7 @@ git commit -m "feat: add Prometheus monitoring with TDD"
 - [ ] Docker Swarm si inizializza correttamente
 - [ ] Helper functions caricate e utilizzabili
 
-### Prossimi Step di Apprendimento:
+### Prossimi Step di Apprendimento
 
 1. **Approfondisci BATS**: Leggi `docs/development/infrastructure-testing.md`
 2. **Studia Helper Functions**: Analizza `test/helpers/docker-helpers.bash`
@@ -384,8 +384,8 @@ git commit -m "feat: add Prometheus monitoring with TDD"
 
 ### Risorse Utili
 
-- **BATS Documentation**: https://github.com/bats-core/bats-core
-- **Docker Swarm Guide**: https://docs.docker.com/engine/swarm/
+- **BATS Documentation**: <https://github.com/bats-core/bats-core>
+- **Docker Swarm Guide**: <https://docs.docker.com/engine/swarm/>
 - **TDD Infrastructure Patterns**: `docs/architecture/tdd-infrastructure.md`
 
 ### Contatti Team
@@ -396,7 +396,7 @@ git commit -m "feat: add Prometheus monitoring with TDD"
 
 ---
 
-## 🎉 Benvenuto nel Team!
+## 🎉 Benvenuto nel Team
 
 Ora hai tutte le basi per contribuire efficacemente al progetto. Il TDD per infrastructure può sembrare diverso all'inizio, ma presto scoprirai quanto aumenta la fiducia e la velocità di sviluppo.
 
@@ -406,3 +406,86 @@ Ora hai tutte le basi per contribuire efficacemente al progetto. Il TDD per infr
 
 _Documento aggiornato: [Data]_
 _Versione: 1.0_
+
+---
+
+## 🔧 Case Study: Risoluzione "TEST_STACK_NAME: unbound variable"
+
+### Problema Reale Risolto ✅
+
+**Situazione**: Test infrastructure fallivano con errore `TEST_STACK_NAME: unbound variable`
+
+```bash
+✗ INTEGRATION: Cluster + Service deployment end-to-end
+  (in test file test/infrastructure/cluster/test-cluster-with-services.bats, line 25)
+    `run deploy_test_service "$TEST_STACK_NAME"' failed
+  /tmp/bats.247642.src: line 25: TEST_STACK_NAME: unbound variable
+```
+
+### Root Cause Analysis
+
+**Problema**: Variabili esportate in `setup_file()` non sempre visibili nei singoli test BATS a causa di:
+
+- Gestione subshell di BATS
+- Isolamento test
+- Scope variables
+
+### Soluzione TDD Applicata
+
+#### 🔴 RED Phase: Test Failing
+
+```bash
+make test-infra-visibility
+# ❌ 2 tests, 2 failures - TEST_STACK_NAME unbound
+```
+
+#### 🟢 GREEN Phase: Helper Functions Pattern
+
+```bash
+# Pattern risolto con helper function
+get_test_stack_name() {
+    echo "${TEST_STACK_NAME:-visibility-test}"
+}
+
+@test "Test name" {
+    local TEST_STACK_NAME
+    TEST_STACK_NAME=$(get_test_stack_name)
+    # Ora la variabile è sempre definita e accessibile
+}
+```
+
+#### 🔵 REFACTOR Phase: SOLID Principles
+
+- **SRP**: `get_test_stack_name()` singola responsabilità
+- **OCP**: `deploy_test_service()` aperta per estensione
+- **DIP**: Dipendenza da astrazioni (helper functions)
+
+### Risultato Finale ✅
+
+```bash
+make test-infra-visibility
+✓ INTEGRATION: Cluster + Service deployment end-to-end
+✓ INTEGRATION: Service scaling works correctly
+2 tests, 0 failures
+
+ID             NAME              MODE         REPLICAS   IMAGE          PORTS
+ke88losc9bao   visibility-test   replicated   3/3        nginx:alpine   *:8080->80/tcp
+```
+
+### Lesson Learned 🎯
+
+- **Helper functions > Global variables** per reliability
+- **Local variable pattern** garantisce scope consistente
+- **TDD methodology** previene regressioni future
+- **SOLID principles** applicabili anche agli script infrastructure
+
+### Quick Reference: Variable Scope in BATS
+
+| Pattern                | Robustezza         | Maintenance     | Raccomandazione      |
+| ---------------------- | ------------------ | --------------- | -------------------- |
+| `export` in setup_file | ⚠️ Inconsistente   | ❌ Difficile    | ❌ Evitare           |
+| Global variables       | ⚠️ Race conditions | ❌ Side effects | ❌ Evitare           |
+| **Helper functions**   | ✅ **Affidabile**  | ✅ **Clean**    | ✅ **Usare**         |
+| Local + Helper         | ✅ **Bulletproof** | ✅ **SOLID**    | ✅ **Best Practice** |
+
+---

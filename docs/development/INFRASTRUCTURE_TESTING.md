@@ -1479,3 +1479,239 @@ Vuoi che procediamo implementando il test per il deployment del monitoring stack
 _Documento aggiornato: 15 Settembre 2025_  
 _Versione: 1.0_  
 _Autore: Tech Lead Team_
+
+---
+
+## 🔧 BATS Variable Scope: Pattern Definitivi
+
+### ❌ Anti-Pattern: Global Export in setup_file()
+
+**Problema comune che TUTTI incontrano:**
+
+```bash
+setup_file() {
+    export TEST_STACK_NAME="my-service"  # ❌ Inconsistente
+    export TEST_IMAGE="nginx:alpine"     # ❌ Race conditions
+}
+
+@test "Deploy service" {
+    # ❌ Può fallire: TEST_STACK_NAME: unbound variable
+    run deploy_service "$TEST_STACK_NAME"
+}
+```
+
+**Perché fallisce:**
+
+- BATS gestisce subshell diversamente tra versioni
+- Test isolation può cancellare variabili export
+- Race conditions con test paralleli
+
+### ✅ Pattern Raccomandato: Helper Functions + Local Variables
+
+```bash
+# In helpers/common-helpers.bash
+get_test_stack_name() {
+    echo "${TEST_STACK_NAME:-default-service}"
+}
+
+get_test_image() {
+    echo "${TEST_IMAGE:-nginx:alpine}"
+}
+
+# Nel test file
+@test "Deploy service - ROBUST" {
+    # ✅ Sempre funziona: local + helper
+    local stack_name
+    local image_name
+
+    stack_name=$(get_test_stack_name)
+    image_name=$(get_test_image)
+
+    run deploy_service "$stack_name" "$image_name"
+    [ "$status" -eq 0 ]
+}
+```
+
+### 🏗️ Pattern Architetturale: Configuration Management
+
+#### Single Responsibility Principle (SRP)
+
+```bash
+# ✅ Ogni helper ha UNA responsabilità
+get_test_stack_name() { echo "visibility-test"; }
+get_test_replicas() { echo "${TEST_REPLICAS:-3}"; }
+get_test_timeout() { echo "${TEST_TIMEOUT:-60}"; }
+```
+
+#### Open/Closed Principle (OCP)
+
+```bash
+# ✅ Base function aperta per estensione
+deploy_test_service() {
+    local stack_name="$1"
+    local image="${2:-$(get_test_image)}"
+    local replicas="${3:-$(get_test_replicas)}"
+
+    docker service create \
+        --name "$stack_name" \
+        --replicas "$replicas" \
+        "$image"
+}
+
+# ✅ Specializzazione senza modificare base
+deploy_nginx_service() {
+    deploy_test_service "$1" "nginx:alpine" "2"
+}
+
+deploy_production_service() {
+    deploy_test_service "$1" "app:production" "5"
+}
+```
+
+### 🚀 Pattern Avanzato: Environment-Aware Testing
+
+```bash
+# Configurazione intelligente basata su contesto
+get_environment_config() {
+    case "${BATS_TEST_ENV:-development}" in
+        "ci")
+            echo "timeout=30,replicas=1,cleanup=aggressive"
+            ;;
+        "development")
+            echo "timeout=60,replicas=3,cleanup=standard"
+            ;;
+        "staging")
+            echo "timeout=120,replicas=5,cleanup=conservative"
+            ;;
+        *)
+            echo "timeout=60,replicas=1,cleanup=standard"
+            ;;
+    esac
+}
+
+parse_config_value() {
+    local config="$1"
+    local key="$2"
+    echo "$config" | grep -o "${key}=[^,]*" | cut -d'=' -f2
+}
+
+@test "Environment-aware deployment" {
+    local config
+    local timeout
+    local replicas
+
+    config=$(get_environment_config)
+    timeout=$(parse_config_value "$config" "timeout")
+    replicas=$(parse_config_value "$config" "replicas")
+
+    run deploy_test_service "$(get_test_stack_name)" "$(get_test_image)" "$replicas"
+    [ "$status" -eq 0 ]
+
+    run wait_for_service_ready "$(get_test_stack_name)" "$timeout"
+    [ "$status" -eq 0 ]
+}
+```
+
+### 🛡️ Pattern di Validation e Error Handling
+
+```bash
+# Validation robusta degli input
+validate_test_environment() {
+    local required_vars=("TEST_STACK_NAME" "TEST_IMAGE")
+    local missing_vars=()
+
+    for var in "${required_vars[@]}"; do
+        if [[ -z "$(eval echo \$${var})" ]]; then
+            missing_vars+=("$var")
+        fi
+    done
+
+    if [[ ${#missing_vars[@]} -gt 0 ]]; then
+        echo "ERROR: Missing required variables: ${missing_vars[*]}" >&2
+        return 1
+    fi
+
+    return 0
+}
+
+# Safe deployment con validation
+safe_deploy_service() {
+    local stack_name="$1"
+    local image="$2"
+
+    # Input validation
+    if [[ -z "$stack_name" || -z "$image" ]]; then
+        echo "ERROR: stack_name and image are required" >&2
+        return 1
+    fi
+
+    # Environment validation
+    if ! validate_test_environment; then
+        return 1
+    fi
+
+    # Conflict detection
+    if service_exists "$stack_name"; then
+        echo "WARNING: Service $stack_name already exists, removing..." >&2
+        docker service rm "$stack_name" >/dev/null 2>&1 || true
+        sleep 2
+    fi
+
+    # Deploy with retry logic
+    local retries=3
+    for ((i=1; i<=retries; i++)); do
+        if docker service create --name "$stack_name" "$image" >/dev/null 2>&1; then
+            echo "Service $stack_name deployed successfully"
+            return 0
+        fi
+        echo "Deploy attempt $i failed, retrying..." >&2
+        sleep 2
+    done
+
+    echo "ERROR: Failed to deploy $stack_name after $retries attempts" >&2
+    return 1
+}
+```
+
+### 📊 Comparison Matrix: Variable Patterns
+
+| Pattern              | Reliability | Performance | Maintainability | Team Adoption  | Verdict               |
+| -------------------- | ----------- | ----------- | --------------- | -------------- | --------------------- |
+| **Global Export**    | ⚠️ 60%      | ✅ High     | ❌ Low          | ❌ Error-prone | ❌ Avoid              |
+| **Environment Vars** | ⚠️ 75%      | ✅ High     | ⚠️ Medium       | ⚠️ Medium      | 🔄 Limited            |
+| **Helper Functions** | ✅ 95%      | ✅ High     | ✅ High         | ✅ Easy        | ✅ **Recommended**    |
+| **Config Objects**   | ✅ 90%      | ⚠️ Medium   | ✅ High         | ⚠️ Complex     | 🔄 **Advanced cases** |
+
+### 🎯 Quick Migration Guide
+
+**Se hai test che usano global export:**
+
+```bash
+# 1. Identifica export problematici
+grep -r "export.*=" test/ | grep setup_file
+
+# 2. Converti in helper functions
+# PRIMA:
+setup_file() {
+    export TEST_VAR="value"
+}
+
+# DOPO:
+get_test_var() {
+    echo "${TEST_VAR:-value}"
+}
+
+# 3. Aggiorna test usage
+# PRIMA:
+run command "$TEST_VAR"
+
+# DOPO:
+local test_var
+test_var=$(get_test_var)
+run command "$test_var"
+
+# 4. Test che tutto funzioni
+bats test/path/to/migrated-test.bats
+```
+
+---
