@@ -1,0 +1,12 @@
+{
+  "recommendations": [
+    "jetmartin.bats",
+    "mads-hartmann.bash-ide-vscode",
+    "timonwong.shellcheck",
+    "bmalehorn.shell-syntax",
+    "foxundermoon.shell-format",
+    "ms-vscode.vscode-typescript-next",
+    "bradlc.vscode-tailwindcss",
+    "esbenp.prettier-vscode"
+  ]
+}

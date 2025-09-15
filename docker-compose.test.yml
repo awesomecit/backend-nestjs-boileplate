@@ -1,0 +1,39 @@
+# docker-compose.test.yml
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: .docker/Dockerfile.test
+    ports:
+      - '3000:3000'
+    environment:
+      - NODE_ENV=test
+      - DATABASE_URL=postgresql://test:test@db:5432/testdb
+    depends_on:
+      - db
+    deploy:
+      replicas: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=testdb
+      - POSTGRES_USER=test
+      - POSTGRES_PASSWORD=test
+    volumes:
+      - test_db_data:/var/lib/postgresql/data
+
+volumes:
+  test_db_data:

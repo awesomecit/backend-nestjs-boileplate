@@ -1,0 +1,23 @@
+{
+  "files.associations": {
+    "*.bats": "shellscript",
+    "*.bash": "shellscript",
+    "docker-helpers.bash": "shellscript",
+    "nestjs-helpers.bash": "shellscript"
+  },
+  "shellcheck.enable": true,
+  "shellcheck.run": "onType",
+  "shellcheck.executablePath": "shellcheck",
+  "shellcheck.exclude": ["SC2034", "SC2086"],
+  "bashIde.shellcheckPath": "shellcheck",
+  "terminal.integrated.defaultProfile.linux": "bash",
+  "terminal.integrated.defaultProfile.osx": "bash",
+  "files.eol": "\n",
+  "editor.insertSpaces": true,
+  "editor.tabSize": 2,
+  "[shellscript]": {
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+    "editor.defaultFormatter": "mads-hartmann.bash-ide-vscode"
+  }
+}

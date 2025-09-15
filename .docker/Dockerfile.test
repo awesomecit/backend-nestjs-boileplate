@@ -1,0 +1,25 @@
+# .docker/Dockerfile.test
+FROM node:20.17.0-alpine AS development
+
+WORKDIR /app
+
+# Installa Docker client per health checks
+RUN apk add --no-cache docker-cli
+
+# Copia dependency files
+COPY package*.json ./
+RUN npm ci
+
+# Copia source code
+COPY . .
+
+# Build dell'applicazione
+RUN npm run build
+
+# Health check integrato
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3000/health || exit 1
+
+EXPOSE 3000
+
+CMD ["npm", "run", "start:prod"]
