@@ -6,7 +6,6 @@ module.exports = {
 
   // CRITICO: Forza l'esecuzione sequenziale per evitare conflitti
   maxWorkers: 1,
-  runInBand: true,
 
   // Timeout generosi per operazioni database e container
   testTimeout: 60000,
@@ -16,7 +15,12 @@ module.exports = {
   forceExit: true,
 
   // Pattern dei file di test
-  testMatch: ['<rootDir>/src/**/*.spec.ts', '<rootDir>/src/**/*.test.ts'],
+  testMatch: [
+    '<rootDir>/src/**/*.spec.ts',
+    '<rootDir>/src/**/*.test.ts',
+    '<rootDir>/test/**/*.spec.ts',
+    '<rootDir>/test/**/*.test.ts',
+  ],
 
   // Moduli da trasformare con TypeScript
   preset: 'ts-jest',
@@ -25,7 +29,7 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/test/setup.ts'],
 
   // Mapping dei moduli per import relativi
-  moduleNameMapping: {
+  moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@test/(.*)$': '<rootDir>/test/$1',
   },
