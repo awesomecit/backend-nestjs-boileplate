@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NGINX Monitoring Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .status-card {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 4px solid #4CAF50;
+        }
+        .endpoint {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: 3px;
+            font-family: monospace;
+            margin: 5px 0;
+        }
+        .green { color: #4CAF50; }
+        .blue { color: #2196F3; }
+        .orange { color: #FF9800; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 NGINX Monitoring Stack</h1>
+        
+        <div class="status-card">
+            <h3>📊 Monitoring Endpoints</h3>
+            <div class="endpoint">
+                <strong class="green">NGINX Status:</strong> 
+                <a href="/nginx_status" style="color: #4CAF50;">/nginx_status</a>
+            </div>
+            <div class="endpoint">
+                <strong class="blue">Health Check:</strong> 
+                <a href="/health" style="color: #2196F3;">/health</a>
+            </div>
+            <div class="endpoint">
+                <strong class="orange">Prometheus Metrics:</strong> 
+                <a href="http://localhost:9113/metrics" style="color: #FF9800;">:9113/metrics</a>
+            </div>
+        </div>
+
+        <div class="status-card">
+            <h3>🎯 Load Testing</h3>
+            <p>Use these endpoints to generate traffic for monitoring:</p>
+            <div class="endpoint">
+                <strong>Main Page:</strong> <code>/</code>
+            </div>
+            <div class="endpoint">
+                <strong>Test API:</strong> <code>/api/test</code>
+            </div>
+            <div class="endpoint">
+                <strong>Static Resources:</strong> <code>/static/*</code>
+            </div>
+        </div>
+
+        <div class="status-card">
+            <h3>📈 Monitoring Stack Components</h3>
+            <ul>
+                <li><strong>NGINX:</strong> Web server with stub_status module</li>
+                <li><strong>NGINX Exporter:</strong> Prometheus metrics exporter</li>
+                <li><strong>Prometheus:</strong> Metrics collection and storage</li>
+                <li><strong>Grafana:</strong> Visualization dashboards</li>
+                <li><strong>Alertmanager:</strong> Alert handling and routing</li>
+            </ul>
+        </div>
+
+        <div class="status-card">
+            <h3>🛠️ Development Mode</h3>
+            <p>This page is served by NGINX in development/testing mode.</p>
+            <p><small>Timestamp: <span id="timestamp"></span></small></p>
+        </div>
+    </div>
+
+    <script>
+        // Display current timestamp
+        document.getElementById('timestamp').textContent = new Date().toISOString();
+        
+        // Auto-refresh timestamp every 5 seconds
+        setInterval(() => {
+            document.getElementById('timestamp').textContent = new Date().toISOString();
+        }, 5000);
+    </script>
+</body>
+</html>
