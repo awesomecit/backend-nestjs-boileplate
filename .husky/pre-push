@@ -1,1 +1,36 @@
-npm run pre-push
+#!/bin/sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🚀 Smart pre-push hook - analyzing branch changes..."
+
+# Analizza i cambiamenti da pushare vs origin/main o HEAD~5
+test_strategy=$(scripts/smart-test-selector.sh determine origin/main 2>/dev/null || scripts/smart-test-selector.sh determine HEAD~5)
+
+echo "📊 Changes to push: $test_strategy"
+
+case "$test_strategy" in
+    "nestjs")
+        echo "🧪 Running complete NestJS test suite..."
+        npm run test
+        npm run test:e2e
+        ;;
+    "infrastructure")
+        echo "🏗️ Running infrastructure and monitoring tests..."
+        npm run test:infrastructure
+        npm run test:monitoring
+        ;;
+    "all")
+        echo "🎯 Running FULL test suite (mixed changes detected)..."
+        npm run test:all
+        ;;
+    "quick")
+        echo "⚡ Running health checks..."
+        npm run health
+        ;;
+    *)
+        echo "📝 Minimal changes detected - running quick validation..."
+        npm run health --silent
+        ;;
+esac
+
+echo "✅ Pre-push validation completed!"
