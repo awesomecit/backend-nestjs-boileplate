@@ -13,11 +13,15 @@ graph TB
         Grafana[📈 Grafana<br/>:3000<br/>Data Visualization]
         Portainer[🐳 Portainer<br/>:9000<br/>Container Management]
         NodeExporter[📡 Node Exporter<br/>:9100<br/>System Metrics]
+        NGINX[🌐 NGINX<br/>:80<br/>Web Server]
+        NGINXExporter[📊 NGINX Exporter<br/>:9113<br/>NGINX Metrics]
     end
 
     subgraph "🔗 Data Flow"
         Apps[NestJS Applications] --> Prometheus
         NodeExporter --> Prometheus
+        NGINX --> NGINXExporter
+        NGINXExporter --> Prometheus
         Prometheus --> Grafana
     end
 
@@ -25,6 +29,7 @@ graph TB
         Admin[System Administrator] --> Portainer
         DevOps[DevOps Team] --> Grafana
         SRE[SRE Team] --> Prometheus
+        Users[End Users] --> NGINX
     end
 ```
 
@@ -70,6 +75,26 @@ graph TB
   - Hardware and OS metrics
   - Custom metrics support
 
+### 5. NGINX (Web Server)
+
+- **URL**: <http://localhost:80>
+- **Purpose**: High-performance web server and reverse proxy
+- **Key Features**:
+  - Web server for applications and static content
+  - Load balancing and reverse proxy capabilities
+  - Status endpoint: `/nginx_status`
+  - Health check endpoint: `/health`
+
+### 6. NGINX Prometheus Exporter (Web Server Metrics)
+
+- **URL**: <http://localhost:9113/metrics>
+- **Purpose**: Exports NGINX metrics to Prometheus format
+- **Key Features**:
+  - HTTP request/response metrics
+  - Connection and processing metrics
+  - Status code distribution
+  - Request rate and latency tracking
+
 ## 📋 Quick Start Guide
 
 ### Deploy Monitoring Stack
@@ -93,11 +118,27 @@ make logs-monitoring
    - View alerts: Alerts tab
 
 2. **Grafana**: Navigate to <http://localhost:3000>
-   - Login with admin/admin
+   - Login with admin/admin123
    - Import dashboards from `/deployment/monitoring/grafana/dashboards/`
    - Configure Prometheus datasource: <http://prometheus:9090>
 
 3. **Portainer**: Navigate to <http://localhost:9000>
+   - Manage Docker Swarm services and stacks
+   - Monitor container resources and logs
+
+4. **NGINX**: Navigate to <http://localhost:80>
+   - Main web server interface
+   - Status endpoint: <http://localhost:80/nginx_status>
+   - Health check: <http://localhost:80/health>
+
+5. **NGINX Exporter**: Navigate to <http://localhost:9113/metrics>
+   - Prometheus-formatted NGINX metrics
+   - Request rates, connections, response times
+   - Login with admin/admin
+   - Import dashboards from `/deployment/monitoring/grafana/dashboards/`
+   - Configure Prometheus datasource: <http://prometheus:9090>
+
+6. **Portainer**: Navigate to <http://localhost:9000>
    - Select Docker Swarm environment
    - View running stacks and services
    - Monitor resource usage
@@ -137,6 +178,12 @@ scrape_configs:
   - job_name: 'node-exporter'
     static_configs:
       - targets: ['node-exporter:9100']
+
+  - job_name: 'nginx-exporter'
+    static_configs:
+      - targets: ['nginx-exporter:9113']
+    scrape_interval: 5s
+    metrics_path: /metrics
 ```
 
 ### Grafana Dashboards
@@ -289,3 +336,67 @@ Important data locations:
 **Last Updated**: 2025-09-16  
 **Version**: 1.0.0  
 **Status**: Production Ready ✅
+
+## 🧪 TDD Testing & NGINX Monitoring
+
+### Test-Driven Development Approach
+
+The monitoring integration follows TDD methodology with comprehensive test coverage:
+
+```bash
+# Run all TDD monitoring tests
+bats test/monitoring/test-nginx-exporter-requirements.bats
+
+# Expected output:
+✓ REQUIREMENT: NGINX deve essere configurato per esporre nginx_status
+✓ REQUIREMENT: NGINX Exporter deve essere configurato e funzionante
+✓ REQUIREMENT: Prometheus deve raccogliere metriche NGINX automaticamente
+✓ REQUIREMENT: Grafana deve avere dashboard preconfigurata per NGINX
+✓ REQUIREMENT: Sistema deve allertare su problemi critici NGINX
+✓ REQUIREMENT: Load testing deve generare metriche visibili
+
+6 tests, 0 failures
+```
+
+### Key NGINX Metrics Available
+
+| Metric Name                  | Description                     | Type    |
+| ---------------------------- | ------------------------------- | ------- |
+| `nginx_up`                   | NGINX service availability      | Gauge   |
+| `nginx_connections_active`   | Active client connections       | Gauge   |
+| `nginx_connections_accepted` | Total accepted connections      | Counter |
+| `nginx_connections_handled`  | Total handled connections       | Counter |
+| `nginx_http_requests_total`  | Total HTTP requests             | Counter |
+| `nginx_connections_reading`  | Connections reading request     | Gauge   |
+| `nginx_connections_writing`  | Connections writing response    | Gauge   |
+| `nginx_connections_waiting`  | Connections waiting for request | Gauge   |
+
+### Testing Strategy
+
+The monitoring stack uses a **unified approach**:
+
+- Single integrated monitoring stack (no separate test deployments)
+- All tests verify existing monitoring services
+- Zero port conflicts or resource duplication
+- Production-like testing environment
+
+### NGINX Endpoints
+
+| Endpoint        | Purpose               | Response Format   |
+| --------------- | --------------------- | ----------------- |
+| `/`             | Main application page | HTML              |
+| `/health`       | Health check          | Plain text        |
+| `/nginx_status` | NGINX statistics      | Plain text        |
+| `:9113/metrics` | Prometheus metrics    | Prometheus format |
+
+### Load Testing Example
+
+Generate traffic to observe metrics:
+
+```bash
+# Simple load test
+for i in {1..100}; do curl -s http://localhost/ >/dev/null; done
+
+# Check metrics update
+curl -s http://localhost:9113/metrics | grep nginx_http_requests_total
+```
