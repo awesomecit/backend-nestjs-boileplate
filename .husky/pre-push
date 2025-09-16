@@ -1,6 +1,4 @@
 #!/bin/sh
-. "$(dirname -- "$0")/_/husky.sh"
-
 echo "🚀 Smart pre-push hook - analyzing branch changes..."
 
 # Analizza i cambiamenti da pushare vs origin/main o HEAD~5
