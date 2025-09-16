@@ -364,6 +364,110 @@ function verify_infrastructure() {
 }
 ```
 
+## 🔴 **Category 7: Monitoring Stack Issues**
+
+### **Problem**: Monitoring Services Not Starting
+
+**Symptoms**:
+
+```bash
+❌ Prometheus: DOWN
+❌ Grafana: DOWN
+❌ Portainer: DOWN
+```
+
+**Root Cause Analysis**:
+Usually caused by port conflicts, Docker Swarm not initialized, or insufficient resources.
+
+**Solution Step-by-Step**:
+
+```bash
+# 1. Check Docker Swarm status
+docker node ls
+# If not initialized:
+docker swarm init
+
+# 2. Check port availability
+netstat -tln | grep -E ":3000|:9000|:9090|:9100"
+# Kill processes using required ports if needed
+
+# 3. Check available resources
+docker system df
+docker stats --no-stream
+
+# 4. Deploy with debugging
+make deploy-monitoring
+
+# 5. Check service status
+make status-monitoring
+docker service ls
+
+# 6. Check service logs if failing
+docker service logs monitoring_prometheus
+docker service logs monitoring_grafana
+docker service logs monitoring_portainer
+```
+
+### **Problem**: Grafana Can't Connect to Prometheus
+
+**Symptoms**:
+
+- Grafana loads but dashboards show "No data"
+- Datasource test fails in Grafana
+
+**Root Cause Analysis**:
+Network connectivity issues between containers or wrong datasource URL.
+
+**Solution Step-by-Step**:
+
+```bash
+# 1. Check if Prometheus is accessible from Grafana
+docker exec $(docker ps -q -f name=monitoring_grafana) curl -f http://prometheus:9090/-/healthy
+
+# 2. Verify Prometheus targets
+curl http://localhost:9090/api/v1/targets
+
+# 3. Check if services are on same network
+docker network ls
+docker network inspect monitoring_default
+
+# 4. Restart Grafana service
+docker service update --force monitoring_grafana
+```
+
+### **Problem**: No Metrics Being Collected
+
+**Symptoms**:
+
+- Prometheus shows no targets or targets are "Down"
+- Empty metrics or "No data" in queries
+
+**Root Cause Analysis**:
+Service discovery issues, firewall blocking, or incorrect scrape configurations.
+
+**Solution Step-by-Step**:
+
+```bash
+# 1. Check node-exporter accessibility
+curl http://localhost:9100/metrics
+
+# 2. Check Prometheus configuration
+docker config inspect monitoring_prometheus-config
+
+# 3. Verify target health in Prometheus UI
+# Go to http://localhost:9090/targets
+
+# 4. Check if application metrics are exposed
+# (If you have app metrics configured)
+curl http://your-app:port/metrics
+```
+
+**Prevention**:
+
+- Always run TDD cycle: `make tdd-monitoring`
+- Verify all services before considering deployment complete
+- Use health checks consistently
+
 ## 🎯 **Best Practices Summary**
 
 ### **DO's ✅**

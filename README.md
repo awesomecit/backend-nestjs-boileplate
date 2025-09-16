@@ -65,6 +65,23 @@ Per informazioni dettagliate su architettura, deployment e best practices, consu
 - **Architettura**: Diagrammi e decisioni architetturali
 - **Deployment**: Procedure di deploy e configurazioni ambiente
 - **Monitoraggio**: Setup e configurazione degli strumenti di observability
+- **Development**: Guide per sviluppatori e best practices TDD
+
+### 📊 Quick Start - Monitoring Stack
+
+Il progetto include un stack di monitoring completo e production-ready:
+
+```bash
+# Deploy dello stack di monitoring
+make deploy-monitoring
+
+# Accesso ai servizi
+# Grafana:    http://localhost:3000 (admin/admin)
+# Prometheus: http://localhost:9090
+# Portainer:  http://localhost:9000
+```
+
+Per la documentazione completa del monitoring, vedi [docs/monitoring/README.md](docs/monitoring/README.md).
 
 ---
 

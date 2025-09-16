@@ -246,6 +246,26 @@ get_primary_ip
 init_swarm_cluster
 ```
 
+### 4. Deploy del Monitoring Stack (Opzionale)
+
+```bash
+# Deploy completo dello stack di monitoring
+make deploy-monitoring
+
+# Verifica il deploy
+make status-monitoring
+
+# Accedi ai servizi:
+# - Grafana: http://localhost:3000 (admin/admin)
+# - Prometheus: http://localhost:9090
+# - Portainer: http://localhost:9000
+
+# Cleanup quando finito
+make cleanup-monitoring
+```
+
+**Nota**: Per la documentazione completa del monitoring, vedi [docs/monitoring/README.md](../monitoring/README.md).
+
 ## 🧩 Componenti Chiave da Capire
 
 ### Helper Functions (`test/helpers/docker-helpers.bash`)
