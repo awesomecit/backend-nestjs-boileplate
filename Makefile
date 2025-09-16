@@ -167,6 +167,30 @@ logs-monitoring: ## 📋 Show monitoring services logs
 
 restart-monitoring: cleanup-monitoring deploy-monitoring ## 🔄 Restart monitoring stack
 
+health-check: ## 🏥 Run comprehensive health check for all systems
+	@chmod +x scripts/health-check.sh
+	@./scripts/health-check.sh
+
+health-check-verbose: ## 🏥 Run detailed health check with verbose output  
+	@chmod +x scripts/health-check.sh
+	@./scripts/health-check.sh --verbose
+
+health-check-json: ## 🏥 Run health check with JSON output
+	@chmod +x scripts/health-check.sh
+	@./scripts/health-check.sh --json
+
+health-check-nestjs: ## 🏥 Check only NestJS application health
+	@chmod +x scripts/health-check.sh
+	@./scripts/health-check.sh --component=nestjs
+
+health-check-infrastructure: ## 🏥 Check only infrastructure health
+	@chmod +x scripts/health-check.sh
+	@./scripts/health-check.sh --component=infrastructure
+
+health-check-monitoring: ## 🏥 Check only monitoring stack health
+	@chmod +x scripts/health-check.sh
+	@./scripts/health-check.sh --component=monitoring
+
 
 # ==========================================
 # 🧪 TESTING COMMANDS  

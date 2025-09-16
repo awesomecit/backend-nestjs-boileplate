@@ -264,6 +264,24 @@ make status-monitoring
 make cleanup-monitoring
 ```
 
+### 5. Health Checks di Sistema
+
+```bash
+# Health check completo di tutti i sistemi
+npm run health
+
+# Health check dettagliato con verbose output
+npm run health:verbose
+
+# Health check specifici per componente
+npm run health:nestjs          # Solo NestJS
+npm run health:infrastructure  # Solo Docker/Swarm
+npm run health:monitoring      # Solo monitoring stack
+
+# Output in formato JSON (utile per automazione)
+npm run health:json
+```
+
 **Nota**: Per la documentazione completa del monitoring, vedi [docs/monitoring/README.md](../monitoring/README.md).
 
 ## 🧩 Componenti Chiave da Capire

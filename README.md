@@ -81,6 +81,29 @@ make deploy-monitoring
 # Portainer:  http://localhost:9000
 ```
 
+### 🏥 Health Checks
+
+Sistema completo di health checks per tutti i componenti:
+
+```bash
+# Health check completo
+npm run health
+
+# Health check con output dettagliato
+npm run health:verbose
+
+# Health check specifici per componente
+npm run health:nestjs          # Solo applicazione NestJS
+npm run health:infrastructure  # Solo Docker/Swarm
+npm run health:monitoring      # Solo stack di monitoring
+```
+
+**Endpoints NestJS disponibili:**
+
+- `GET /health` - Salute base dell'applicazione
+- `GET /health/cluster` - Informazioni cluster Docker Swarm
+- `GET /health/detailed` - Health check completo con dipendenze
+
 Per la documentazione completa del monitoring, vedi [docs/monitoring/README.md](docs/monitoring/README.md).
 
 ---

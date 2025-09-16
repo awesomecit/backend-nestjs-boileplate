@@ -21,12 +21,19 @@ describe('HealthController', () => {
     // When: Chiamo l'endpoint /health
     const result = await controller.getHealth();
 
-    // Then: Dovrei ricevere status OK
+    // Then: Dovrei ricevere status OK con tutte le proprietà
     expect(result).toEqual({
       status: 'ok',
       timestamp: expect.any(String),
       uptime: expect.any(Number),
       environment: 'test',
+      pid: expect.any(Number),
+      version: expect.any(String),
+      memory: {
+        rss: expect.any(Number),
+        heapTotal: expect.any(Number),
+        heapUsed: expect.any(Number),
+      },
     });
   });
 
@@ -36,15 +43,36 @@ describe('HealthController', () => {
     // When: Chiamo health endpoint
     const result = await controller.getHealthWithNodeInfo();
 
-    // Then: Dovrei vedere info del nodo
+    // Then: Dovrei vedere info del nodo con tutte le proprietà
     expect(result).toEqual({
       status: 'ok',
+      timestamp: expect.any(String),
+      uptime: expect.any(Number),
+      environment: 'test',
+      pid: expect.any(Number),
+      version: expect.any(String),
+      memory: {
+        rss: expect.any(Number),
+        heapTotal: expect.any(Number),
+        heapUsed: expect.any(Number),
+      },
       node: {
         id: expect.any(String),
         hostname: expect.any(String),
       },
       cluster: {
         role: expect.stringMatching(/manager|worker/),
+        swarmActive: expect.any(Boolean),
+      },
+      dependencies: {
+        database: {
+          status: expect.stringMatching(/ok|error/),
+          message: expect.any(String),
+        },
+        external: {
+          status: expect.stringMatching(/ok|error/),
+          message: expect.any(String),
+        },
       },
     });
   });
