@@ -1,6 +1,7 @@
 #!/usr/bin/env bats
 
 # Load helpers
+load '../helpers/config'
 load '../helpers/monitoring-helpers'
 
 # =============================================================================
@@ -59,7 +60,7 @@ teardown() {
     [ "$status" -eq 0 ]
     
     # And: Le metriche devono includere request count
-    run curl -s http://localhost:9113/metrics
+    run curl -s "${NGINX_EXPORTER_URL}/metrics"
     [[ "$output" =~ "nginx_http_requests_total" ]]
     
     echo "✅ SUCCESS: NGINX is being monitored" >&3
@@ -78,7 +79,7 @@ teardown() {
     [ "$status" -eq 0 ]
     
     # Then: Accesso Grafana dashboard
-    run curl -s -u admin:admin123 http://localhost:3000/api/search
+    run curl -s -u "${GRAFANA_ADMIN_USER}:${GRAFANA_ADMIN_PASSWORD}" "${GRAFANA_URL}/api/search"
     [ "$status" -eq 0 ]
     
     # And: Deve esistere dashboard per Docker Swarm
@@ -100,7 +101,7 @@ teardown() {
     [ "$status" -eq 0 ]
     
     # Then: Verifico configurazione alert rules
-    run curl -s http://localhost:9090/api/v1/rules
+    run curl -s "${PROMETHEUS_URL}/api/v1/rules"
     [ "$status" -eq 0 ]
     
     # And: Devono esistere regole per servizi down
@@ -123,7 +124,7 @@ teardown() {
         [ "$status" -eq 0 ]
         
         # Then: Accesso Portainer
-        run curl -s http://localhost:9000/api/status
+        run curl -s "${PORTAINER_URL}/api/status"
         [ "$status" -eq 0 ]
         
         # And: Portainer deve essere accessibile
