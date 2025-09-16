@@ -1,0 +1,42 @@
+{
+  "id": null,
+  "title": "Docker Swarm Monitoring",
+  "tags": ["docker", "swarm"],
+  "timezone": "browser",
+  "schemaVersion": 36,
+  "version": 1,
+  "panels": [
+    {
+      "id": 1,
+      "title": "Nodes Up",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "count(node_uname_info)",
+          "refId": "A",
+          "interval": "",
+          "legendFormat": "Nodes"
+        }
+      ],
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "unit": "short"
+        }
+      }
+    }
+  ],
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "refresh": "5s"
+}

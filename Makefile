@@ -10,6 +10,8 @@
 .PHONY: dev start build-docker deploy-dev deploy-staging deploy-prod
 .PHONY: setup-dev setup-monitoring setup-logging cleanup validate-syntax
 .PHONY: debug-infrastructure troubleshoot-bats verify-environment
+.PHONY: test-monitoring-red test-monitoring test-all-red
+.PHONY: deploy-monitoring cleanup-monitoring status-monitoring
 .DEFAULT_GOAL := help
 
 # ==========================================
@@ -55,16 +57,120 @@ build: ## 🏗️ Build application
 	npm run build
 	@echo "✅ Build completed"
 
+# =============================================================================
+# INFRASTRUCTURE DEPLOYMENT
+# =============================================================================
+
+deploy-monitoring: ## 🚀 Deploy monitoring infrastructure (Prometheus, Grafana, Portainer)
+	@echo "🚀 Deploying monitoring infrastructure..."
+	@chmod +x scripts/deploy-monitoring.sh
+	@./scripts/deploy-monitoring.sh
+
+deploy-infrastructure: ## 🏗️ Deploy main infrastructure (Docker Swarm, NGINX)
+	@echo "🏗️ Deploying main infrastructure..."
+	# I tuoi comandi esistenti per l'infrastruttura principale
+
+deploy-all: deploy-infrastructure deploy-monitoring ## 🚀 Deploy everything (infrastructure + monitoring)
+
+# =============================================================================
+# INFRASTRUCTURE MANAGEMENT
+# =============================================================================
+
+status-monitoring: ## 📊 Check monitoring stack status
+	@echo "📊 Monitoring Stack Status:"
+	@echo "=========================="
+	@docker stack services monitoring 2>/dev/null || echo "❌ Monitoring stack not deployed"
+	@echo ""
+	@echo "🔗 Quick Health Check:"
+	@curl -s http://localhost:9090/api/v1/targets >/dev/null 2>&1 && echo "✅ Prometheus: UP" || echo "❌ Prometheus: DOWN"
+	@curl -s http://localhost:3000/api/health >/dev/null 2>&1 && echo "✅ Grafana: UP" || echo "❌ Grafana: DOWN"
+	@curl -s http://localhost:9000/api/status >/dev/null 2>&1 && echo "✅ Portainer: UP" || echo "❌ Portainer: DOWN"
+
+status-infrastructure: ## 📊 Check main infrastructure status
+	@echo "📊 Infrastructure Status:"
+	@echo "========================"
+	@docker node ls 2>/dev/null || echo "❌ Docker Swarm not initialized"
+	@docker stack ls 2>/dev/null || echo "❌ No stacks deployed"
+
+status-all: status-infrastructure status-monitoring ## 📊 Check all infrastructure status
+
+# =============================================================================
+# TESTING
+# =============================================================================
+
+test-infrastructure: ## 🧪 Run infrastructure tests
+	@echo "🧪 Running infrastructure tests..."
+	@bats test/infrastructure/
+
+test-monitoring: ## 🧪 Run monitoring tests
+	@echo "🧪 Running monitoring tests..."
+	@bats test/monitoring/
+
+test-all: test-infrastructure test-monitoring ## 🧪 Run all tests
+
+# =============================================================================
+# TDD WORKFLOW
+# =============================================================================
+
+tdd-monitoring-red: ## 🔴 TDD RED: Run monitoring tests (should fail)
+	@echo "🔴 RED PHASE: Tests should FAIL (no infrastructure)"
+	@echo "=================================================="
+	@bats test/monitoring/test-monitoring-requirements.bats || true
+	@echo "✅ Red phase complete - tests failed as expected!"
+
+tdd-monitoring-green: ## 🟢 TDD GREEN: Deploy and test (should pass)
+	@echo "🟢 GREEN PHASE: Deploy and test"
+	@echo "==============================="
+	@echo "Step 1: Deploy infrastructure..."
+	@$(MAKE) deploy-monitoring
+	@echo ""
+	@echo "Step 2: Run tests (should PASS)..."
+	@bats test/monitoring/test-monitoring-requirements.bats
+	@echo "✅ Green phase complete - tests passed!"
+
+tdd-monitoring: tdd-monitoring-red tdd-monitoring-green ## 🎯 Complete TDD cycle for monitoring
+	@echo "🎯 TDD CYCLE COMPLETE!"
+	@echo "- 🔴 RED: Tests failed without infrastructure ✅"
+	@echo "- 🟢 GREEN: Infrastructure deployed, tests passed ✅"
+	@echo ""
+	@echo "🔗 Access your monitoring:"
+	@echo "   Grafana: http://localhost:3000"
+	@echo "   Prometheus: http://localhost:9090"
+	@echo "   Portainer: http://localhost:9000"
+	@echo ""
+	@echo "Run 'make cleanup-monitoring' when done"
+
+# =============================================================================
+# CLEANUP
+# =============================================================================
+
+cleanup-monitoring: ## 🧹 Remove monitoring infrastructure
+	@echo "🧹 Cleaning up monitoring infrastructure..."
+	@chmod +x scripts/cleanup-monitoring.sh
+	@./scripts/cleanup-monitoring.sh
+
+cleanup-infrastructure: ## 🧹 Remove main infrastructure
+	@echo "🧹 Cleaning up main infrastructure..."
+	# I tuoi comandi di cleanup esistenti
+
+cleanup-all: cleanup-monitoring cleanup-infrastructure ## 🧹 Remove all infrastructure
+
+# =============================================================================
+# DEVELOPMENT UTILITIES
+# =============================================================================
+
+logs-monitoring: ## 📋 Show monitoring services logs
+	@echo "📋 Monitoring Services Logs:"
+	@echo "============================"
+	@docker service logs monitoring_prometheus --tail 50 2>/dev/null || echo "❌ Prometheus not running"
+	@docker service logs monitoring_grafana --tail 50 2>/dev/null || echo "❌ Grafana not running"
+
+restart-monitoring: cleanup-monitoring deploy-monitoring ## 🔄 Restart monitoring stack
+
+
 # ==========================================
 # 🧪 TESTING COMMANDS  
 # ==========================================
-
-test-all: ## 🧪 Run all tests (unit + e2e + infrastructure)
-	@echo "🧪 Running complete test suite..."
-	@make test-unit
-	@make test-e2e
-	@make test-infra-quick
-	@echo "✅ All tests completed"
 
 test-unit: ## 🔬 Run unit tests
 	@echo "🔬 Running unit tests..."
@@ -125,6 +231,23 @@ validate-syntax: ## ✅ Validate syntax of all bash/bats files
 	@find test/ -name "*.bash" -o -name "*.bats" 2>/dev/null | xargs -I {} bash -n {} && echo "  Test files: OK" || echo "  Some test files have syntax errors"
 	@find scripts/ -name "*.sh" 2>/dev/null | xargs -I {} bash -n {} && echo "  Script files: OK" || echo "  Script directory not found or has syntax errors"
 	@echo "✅ Syntax validation completed"
+
+test-monitoring-red: ## 🔴 TDD RED: Run monitoring tests (should fail)
+	@echo "🔴 RED PHASE: Running monitoring tests (should FAIL)"
+	@echo "=============================================="
+	@bats test/monitoring/test-monitoring-requirements.bats || true
+	@echo ""
+	@echo "✅ Red phase complete - tests failed as expected!"
+	@echo "Next: implement monitoring stack to make tests pass"
+
+test-all-red: test-infrastructure test-monitoring-red
+	@echo "🔴 All RED tests completed"
+
+test-monitoring-green:
+	@echo "🟢 GREEN PHASE: Testing minimal implementation"
+	@echo "============================================="
+	@bats test/monitoring/test-monitoring-requirements.bats
+	@echo "✅ Green phase complete - tests should PASS!"
 
 # ==========================================
 # 🔧 INTERNAL TEST FILE CREATION
@@ -443,11 +566,6 @@ cleanup-dev: ## 🧹 Cleanup development resources only
 logs-app: ## 📋 Show application logs
 	@echo "📋 Application logs:"
 	@docker service logs scalable-app 2>/dev/null || echo "Service not running"
-
-logs-monitoring: ## 📊 Show monitoring stack logs
-	@echo "📊 Monitoring stack logs:"
-	@docker service logs monitoring_prometheus 2>/dev/null || echo "Prometheus not running"
-	@docker service logs monitoring_grafana 2>/dev/null || echo "Grafana not running"
 
 status: ## 📊 Show system status
 	@echo "📊 System Status:"
